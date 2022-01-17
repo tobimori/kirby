@@ -499,6 +499,27 @@ return [
         'submit'  => $files['delete']['submit'],
     ],
 
+    // select a page
+    'page.picker' => [
+        'pattern' => 'pages/picker',
+        'load' => function () {
+            return [
+                'component' => 'k-picker-dialog',
+                'props' => [
+                    'options' => [],
+                    'parent' => null
+                ]
+            ];
+        },
+        'submit' => function () {
+            // selection
+
+            return [
+
+            ];
+        }
+    ],
+
     // change site title
     'site.changeTitle' => [
         'pattern' => 'site/changeTitle',
