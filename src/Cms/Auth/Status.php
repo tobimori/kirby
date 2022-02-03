@@ -59,16 +59,6 @@ class Status
     protected $status;
 
     /**
-     * Class constructor
-     *
-     * @param array $props
-     */
-    public function __construct(array $props)
-    {
-        $this->setProperties($props);
-    }
-
-    /**
      * Returns the authentication status
      *
      * @return string

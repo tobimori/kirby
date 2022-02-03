@@ -30,16 +30,6 @@ class Body
     protected $text;
 
     /**
-     * Email body constructor
-     *
-     * @param array $props
-     */
-    public function __construct(array $props = [])
-    {
-        $this->setProperties($props);
-    }
-
-    /**
      * Returns the HTML content of the email body
      *
      * @return string

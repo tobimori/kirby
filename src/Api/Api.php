@@ -115,16 +115,6 @@ class Api
     }
 
     /**
-     * Creates a new API instance
-     *
-     * @param array $props
-     */
-    public function __construct(array $props)
-    {
-        $this->setProperties($props);
-    }
-
-    /**
      * Runs the authentication method
      * if set
      *

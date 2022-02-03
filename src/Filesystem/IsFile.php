@@ -46,16 +46,6 @@ trait IsFile
     protected $url;
 
     /**
-     * Constructor sets all file properties
-     *
-     * @param array $props
-     */
-    public function __construct(array $props)
-    {
-        $this->setProperties($props);
-    }
-
-    /**
      * Magic caller for asset methods
      *
      * @param string $method

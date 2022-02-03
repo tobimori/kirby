@@ -50,17 +50,6 @@ class Pagination
     public static $validate = true;
 
     /**
-     * Creates a new pagination object
-     * with the given parameters
-     *
-     * @param array $props
-     */
-    public function __construct(array $props = [])
-    {
-        $this->setProperties($props);
-    }
-
-    /**
      * Creates a pagination instance for the given
      * collection with a flexible argument api
      *

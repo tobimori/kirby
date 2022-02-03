@@ -19,6 +19,14 @@ trait Properties
     protected $propertyData = [];
 
     /**
+     * @param array $props
+     */
+    public function __construct(array $props = [])
+    {
+        $this->setProperties($props);
+    }
+
+    /**
      * Creates an instance with the same
      * initial properties.
      *
