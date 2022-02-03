@@ -7,7 +7,6 @@ use Kirby\Exception\InvalidArgumentException;
 use Kirby\Exception\NotFoundException;
 use Kirby\Toolkit\Collection;
 use Kirby\Toolkit\Obj;
-use Kirby\Toolkit\Properties;
 use Kirby\Toolkit\Query;
 use Kirby\Toolkit\Str;
 
@@ -23,51 +22,25 @@ use Kirby\Toolkit\Str;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-class OptionsQuery
+class OptionsQuery extends OptionsSource
 {
-    use Properties;
 
     /**
+     * Class aliases of predefined Kirby objects
+     *
      * @var array
      */
     protected $aliases = [];
 
     /**
-     * @var array
-     */
-    protected $data;
-
-    /**
-     * @var array|string|null
-     */
-    protected $options;
-
-    /**
+     * Query syntax string
+     *
      * @var string
      */
     protected $query;
 
     /**
-     * @var mixed
-     */
-    protected $text;
-
-    /**
-     * @var mixed
-     */
-    protected $value;
-
-    /**
-     * OptionsQuery constructor
-     *
-     * @param array $props
-     */
-    public function __construct(array $props)
-    {
-        $this->setProperties($props);
-    }
-
-    /**
+     * Returns class aliases of predefined Kirby objects
      * @return array
      */
     public function aliases(): array
@@ -76,21 +49,14 @@ class OptionsQuery
     }
 
     /**
-     * @return array
-     */
-    public function data(): array
-    {
-        return $this->data;
-    }
-
-    /**
-     * @param string $object
+     * Resolves field value
+     *
      * @param string $field
-     * @param array $data
+     * @param string $object
      * @return string
      * @throws \Kirby\Exception\NotFoundException
      */
-    protected function template(string $object, string $field, array $data)
+    protected function field(string $field, string $object)
     {
         $value = $this->$field();
 
@@ -102,14 +68,17 @@ class OptionsQuery
             $value = $value[$object];
         }
 
-        return Str::safeTemplate($value, $data);
+        return $value;
     }
 
     /**
+     * Get options from resolved query syntax
+     *
      * @return array
      */
     public function options(): array
     {
+        // prefer cached options
         if (is_array($this->options) === true) {
             return $this->options;
         }
@@ -125,8 +94,14 @@ class OptionsQuery
             $data  = array_merge($data, [$alias => $item]);
 
             $options[] = [
-                'text'  => $this->template($alias, 'text', $data),
-                'value' => $this->template($alias, 'value', $data)
+                'text'  => Str::safeTemplate(
+                    $this->field('text', $alias),
+                    $data
+                ),
+                'value' => Str::template(
+                    $this->field('value', $alias),
+                    $data
+                )
             ];
         }
 
@@ -199,26 +174,6 @@ class OptionsQuery
     }
 
     /**
-     * @param array $data
-     * @return $this
-     */
-    protected function setData(array $data)
-    {
-        $this->data = $data;
-        return $this;
-    }
-
-    /**
-     * @param array|string|null $options
-     * @return $this
-     */
-    protected function setOptions($options = null)
-    {
-        $this->options = $options;
-        return $this;
-    }
-
-    /**
      * @param string $query
      * @return $this
      */
@@ -226,46 +181,5 @@ class OptionsQuery
     {
         $this->query = $query;
         return $this;
-    }
-
-    /**
-     * @param mixed $text
-     * @return $this
-     */
-    protected function setText($text)
-    {
-        $this->text = $text;
-        return $this;
-    }
-
-    /**
-     * @param mixed $value
-     * @return $this
-     */
-    protected function setValue($value)
-    {
-        $this->value = $value;
-        return $this;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function text()
-    {
-        return $this->text;
-    }
-
-    public function toArray(): array
-    {
-        return $this->options();
-    }
-
-    /**
-     * @return mixed
-     */
-    public function value()
-    {
-        return $this->value;
     }
 }

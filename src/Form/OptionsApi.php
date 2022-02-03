@@ -7,7 +7,6 @@ use Kirby\Exception\Exception;
 use Kirby\Exception\InvalidArgumentException;
 use Kirby\Http\Remote;
 use Kirby\Http\Url;
-use Kirby\Toolkit\Properties;
 use Kirby\Toolkit\Query;
 use Kirby\Toolkit\Str;
 
@@ -21,59 +20,26 @@ use Kirby\Toolkit\Str;
  * @copyright Bastian Allgeier
  * @license   https://opensource.org/licenses/MIT
  */
-class OptionsApi
+class OptionsApi extends OptionsSource
 {
-    use Properties;
 
     /**
-     * @var array
-     */
-    protected $data;
-
-    /**
+     * Query syntax string
+     *
      * @var string|null
      */
     protected $fetch;
 
     /**
-     * @var array|string|null
-     */
-    protected $options;
-
-    /**
-     * @var string
-     */
-    protected $text = '{{ item.value }}';
-
-    /**
+     * API endpoint URL
+     *
      * @var string
      */
     protected $url;
 
     /**
-     * @var string
-     */
-    protected $value = '{{ item.key }}';
-
-    /**
-     * OptionsApi constructor
+     * Returns query syntax string
      *
-     * @param array $props
-     */
-    public function __construct(array $props)
-    {
-        $this->setProperties($props);
-    }
-
-    /**
-     * @return array
-     */
-    public function data(): array
-    {
-        return $this->data;
-    }
-
-    /**
      * @return mixed
      */
     public function fetch()
@@ -82,23 +48,15 @@ class OptionsApi
     }
 
     /**
-     * @param string $field
-     * @param array $data
-     * @return string
-     */
-    protected function field(string $field, array $data): string
-    {
-        $value = $this->$field();
-        return Str::safeTemplate($value, $data);
-    }
-
-    /**
+     * Gets options from API
+     *
      * @return array
      * @throws \Exception
      * @throws \Kirby\Exception\InvalidArgumentException
      */
     public function options(): array
     {
+        // prefer cached options
         if (is_array($this->options) === true) {
             return $this->options;
         }
@@ -139,22 +97,12 @@ class OptionsApi
             $data = array_merge($this->data(), ['item' => $item]);
 
             $options[] = [
-                'text'  => $this->field('text', $data),
-                'value' => $this->field('value', $data),
+                'text'  => Str::safeTemplate($this->text(), $data),
+                'value' => Str::template($this->value(), $data)
             ];
         }
 
         return $options;
-    }
-
-    /**
-     * @param array $data
-     * @return $this
-     */
-    protected function setData(array $data)
-    {
-        $this->data = $data;
-        return $this;
     }
 
     /**
@@ -164,26 +112,6 @@ class OptionsApi
     protected function setFetch(?string $fetch = null)
     {
         $this->fetch = $fetch;
-        return $this;
-    }
-
-    /**
-     * @param array|string|null $options
-     * @return $this
-     */
-    protected function setOptions($options = null)
-    {
-        $this->options = $options;
-        return $this;
-    }
-
-    /**
-     * @param string $text
-     * @return $this
-     */
-    protected function setText(?string $text = null)
-    {
-        $this->text = $text;
         return $this;
     }
 
@@ -198,45 +126,10 @@ class OptionsApi
     }
 
     /**
-     * @param string|null $value
-     * @return $this
-     */
-    protected function setValue(?string $value = null)
-    {
-        $this->value = $value;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function text(): string
-    {
-        return $this->text;
-    }
-
-    /**
-     * @return array
-     * @throws \Kirby\Exception\InvalidArgumentException
-     */
-    public function toArray(): array
-    {
-        return $this->options();
-    }
-
-    /**
      * @return string
      */
     public function url(): string
     {
-        return Str::template($this->url, $this->data());
-    }
-
-    /**
-     * @return string
-     */
-    public function value(): string
-    {
-        return $this->value;
+        return Str::safeTemplate($this->url, $this->data());
     }
 }

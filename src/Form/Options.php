@@ -37,40 +37,37 @@ class Options
     }
 
     /**
-     * Brings options through api
+     * Get options from API
      *
-     * @param $api
+     * @param array|string $api
      * @param \Kirby\Cms\Model|null $model
      * @return array
      */
     public static function api($api, $model = null): array
     {
         $model ??= App::instance()->site();
-        $fetch   = null;
-        $text    = null;
-        $value   = null;
 
         if (is_array($api) === true) {
             $fetch = $api['fetch'] ?? null;
             $text  = $api['text']  ?? null;
             $value = $api['value'] ?? null;
             $url   = $api['url']   ?? null;
-        } else {
-            $url = $api;
         }
 
-        $optionsApi = new OptionsApi([
+        $api = new OptionsApi([
             'data'  => static::data($model),
-            'fetch' => $fetch,
-            'url'   => $url,
-            'text'  => $text,
-            'value' => $value
+            'fetch' => $fetch ?? null,
+            'url'   => $url   ?? $api,
+            'text'  => $text  ?? '{{ item.value }}',
+            'value' => $value ?? '{{ item.key }}'
         ]);
 
-        return $optionsApi->options();
+        return $api->options();
     }
 
     /**
+     * Returns data array for template strings
+     *
      * @param \Kirby\Cms\Model $model
      * @return array
      */
@@ -105,6 +102,8 @@ class Options
      */
     public static function factory($options, array $props = [], $model = null): array
     {
+
+        // get options based on type/shorthands
         switch ($options) {
             case 'api':
                 $options = static::api($props['api'], $model);
@@ -136,8 +135,13 @@ class Options
 
         $result = [];
 
+        // prepare all options to have standardized format
         foreach ($options as $key => $option) {
-            if (is_array($option) === false || isset($option['value']) === false) {
+            // ensure that option is an array with a `value` key
+            if (
+                is_array($option) === false ||
+                isset($option['value']) === false
+            ) {
                 $option = [
                     'value' => is_int($key) ? $option : $key,
                     'text'  => $option
@@ -146,7 +150,10 @@ class Options
 
             // translate the option text
             if (is_array($option['text']) === true) {
-                $option['text'] = I18n::translate($option['text'], $option['text']);
+                $option['text'] = I18n::translate(
+                    $option['text'],
+                    $option['text']
+                );
             }
 
             // add the option to the list
@@ -157,7 +164,7 @@ class Options
     }
 
     /**
-     * Brings options with query
+     * Returns options from resolved query syntax
      *
      * @param $query
      * @param \Kirby\Cms\Model|null $model
@@ -194,7 +201,7 @@ class Options
             $query = $query['fetch'] ?? null;
         }
 
-        $optionsQuery = new OptionsQuery([
+        $query = new OptionsQuery([
             'aliases' => static::aliases(),
             'data'    => static::data($model),
             'query'   => $query,
@@ -202,6 +209,6 @@ class Options
             'value'   => $value
         ]);
 
-        return $optionsQuery->options();
+        return $query->options();
     }
 }
