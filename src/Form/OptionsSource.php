@@ -73,20 +73,20 @@ abstract class OptionsSource
     }
 
     /**
-     * @param string $text
+     * @param string|array|null $text
      * @return $this
      */
-    protected function setText(?string $text = null)
+    protected function setText($text = null)
     {
         $this->text = $text;
         return $this;
     }
 
     /**
-     * @param mixed $value
+     * @param mixed|null $value
      * @return $this
      */
-    protected function setValue($value)
+    protected function setValue($value = null)
     {
         $this->value = $value;
         return $this;
