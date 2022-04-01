@@ -312,15 +312,17 @@ Vue.component("k-topbar", Topbar);
 /* Sections */
 import Sections from "@/components/Sections/Sections.vue";
 import InfoSection from "@/components/Sections/InfoSection.vue";
+import FieldsSection from "@/components/Sections/FieldsSection.vue";
+import ModelsSection from "@/components/Sections/ModelsSection.vue";
 import PagesSection from "@/components/Sections/PagesSection.vue";
 import FilesSection from "@/components/Sections/FilesSection.vue";
-import FieldsSection from "@/components/Sections/FieldsSection.vue";
 
 Vue.component("k-sections", Sections);
 Vue.component("k-info-section", InfoSection);
+Vue.component("k-fields-section", FieldsSection);
+Vue.component("k-models-section", ModelsSection);
 Vue.component("k-pages-section", PagesSection);
 Vue.component("k-files-section", FilesSection);
-Vue.component("k-fields-section", FieldsSection);
 
 /* Views */
 import AccountView from "@/components/Views/AccountView.vue";
