@@ -128,7 +128,7 @@ class Router
     /**
      * Creates a micro-router and executes
      * the routing action immediately
-     * @since 3.6.2
+     * @since 3.6.4
      *
      * @param string|null $path
      * @param string $method
@@ -136,9 +136,9 @@ class Router
      * @param \Closure|null $callback
      * @return mixed
      */
-    public static function factory(?string $path = null, string $method = 'GET', array $routes = [], ?Closure $callback = null)
+    public static function execute(?string $path = null, string $method = 'GET', array $routes = [], ?Closure $callback = null)
     {
-        return (new Router($routes))->call($path, $method, $callback);
+        return (new static($routes))->call($path, $method, $callback);
     }
 
     /**
