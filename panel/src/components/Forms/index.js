@@ -8,6 +8,7 @@ import Fieldset from "./Fieldset.vue";
 import Input from "./Input.vue";
 import Login from "./Login.vue";
 import LoginCode from "./LoginCode.vue";
+import Selector from "./Selector.vue";
 import Upload from "./Upload.vue";
 
 /** Form Helpers */
@@ -36,6 +37,7 @@ export default {
 		app.component("k-input", Input);
 		app.component("k-login", Login);
 		app.component("k-login-code", LoginCode);
+		app.component("k-selector", Selector);
 		app.component("k-upload", Upload);
 
 		app.component("k-login-alert", LoginAlert);

@@ -17,3 +17,9 @@
 		</k-lab-example>
 	</k-lab-examples>
 </template>
+
+<script>
+export default {
+	computed: {}
+};
+</script>

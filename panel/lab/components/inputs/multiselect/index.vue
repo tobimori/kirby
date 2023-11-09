@@ -1,5 +1,6 @@
 <template>
 	<k-lab-options-input-examples
+		:info="false"
 		:value="value"
 		type="multiselect"
 		@input="value = $event"
@@ -29,8 +30,8 @@
 export default {
 	data() {
 		return {
-			value: []
+			value: [],
 		};
-	}
+	},
 };
 </script>

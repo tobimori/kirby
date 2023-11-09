@@ -1,15 +1,11 @@
 <template>
-	<k-navigate
-		ref="navigate"
-		:axis="layout === 'list' ? 'y' : 'x'"
-		select=":where(.k-tag, .k-tags-navigatable):not(:disabled)"
-	>
+	<k-navigate ref="navigation" :axis="layout === 'list' ? 'y' : 'x'">
 		<k-draggable
 			:list="tags"
 			:options="dragOptions"
 			:data-layout="layout"
 			class="k-tags"
-			@end="input"
+			@end="save"
 		>
 			<k-tag
 				v-for="(item, itemIndex) in tags"
@@ -27,22 +23,56 @@
 				<span v-html="item.text" />
 			</k-tag>
 			<template #footer>
-				<!-- @slot Place stuff here in the non-draggable footer -->
-				<slot />
+				<!-- add selector -->
+				<k-selector-dropdown
+					v-if="showAddSelector"
+					ref="selector"
+					v-bind="selectorOptions"
+					:options="selectable"
+					@create="add($event)"
+					@select="add($event)"
+				>
+					<k-button
+						:id="id"
+						ref="toggle"
+						:autofocus="autofocus"
+						icon="add"
+						class="k-tags-toggle"
+						size="xs"
+						@click.native="$refs.selector.open()"
+						@keydown.native="toggle"
+						@keydown.native.delete="navigate(tags.length - 1)"
+					/>
+				</k-selector-dropdown>
+
+				<!-- replace selector -->
+				<k-selector-dropdown
+					ref="editor"
+					v-bind="selectorOptions"
+					:options="replacable"
+					:value="editing?.tag.text"
+					@create="replace($event)"
+					@select="replace($event)"
+				/>
 			</template>
 		</k-draggable>
 	</k-navigate>
 </template>
 
 <script>
-import { disabled, id, options } from "@/mixins/props.js";
+import { autofocus, disabled, id } from "@/mixins/props.js";
+import { props as SelectorProps } from "@/components/Forms/Selector.vue";
 
 export const props = {
-	mixins: [disabled, id, options],
+	mixins: [autofocus, disabled, id, SelectorProps],
 	inheritAttrs: false,
 	props: {
+		draggable: {
+			default: true,
+			type: Boolean
+		},
 		/**
-		 * You can set the layout to `"list"` to extend the width of each tag
+		 * You can set the layout to `list` to extend the width of each tag
 		 * to 100% and show them in a list. This is handy in narrow columns
 		 * or when a list is a more appropriate design choice for the input
 		 * in general.
@@ -51,8 +81,13 @@ export const props = {
 		 */
 		layout: String,
 		/**
-		 * Whether to sort the tags by the available options
+		 * The maximum number of accepted tags
 		 */
+		max: Number,
+		/**
+		 * The minimum number of required tags
+		 */
+		min: Number,
 		sort: {
 			default: false,
 			type: Boolean
@@ -66,18 +101,9 @@ export const props = {
 
 export default {
 	mixins: [props],
-	props: {
-		/**
-		 * Whether the tags can by sorted manually by dragging
-		 * (not available when `sort` is `true`)
-		 */
-		draggable: {
-			default: true,
-			type: Boolean
-		}
-	},
 	data() {
 		return {
+			editing: null,
 			tags: []
 		};
 	},
@@ -101,104 +127,194 @@ export default {
 			}
 
 			return true;
+		},
+		isFull() {
+			if (!this.max) {
+				return false;
+			}
+
+			return this.tags.length >= this.max;
+		},
+		replacable() {
+			return this.options.filter((option) => {
+				return (
+					this.value.includes(option.value) === false ||
+					option.value === this.editing?.tag.value
+				);
+			});
+		},
+		selectable() {
+			return this.options.filter(
+				(option) => this.value.includes(option.value) === false
+			);
+		},
+		selectorOptions() {
+			return {
+				accept: this.accept,
+				disabled: this.disabled,
+				ignore: this.value,
+				search: this.search
+			};
+		},
+		showAddSelector() {
+			if (this.disabled === true) {
+				return false;
+			}
+
+			if (this.isFull === true) {
+				return false;
+			}
+
+			if (this.accept !== "all" && this.selectable.length === 0) {
+				return false;
+			}
+
+			return true;
 		}
 	},
 	watch: {
 		value: {
 			handler() {
-				// make sure values are not reactive
-				// otherwise this could have nasty side-effects
-				let tags = this.$helper.object.clone(this.value);
-
-				// sort all tags by the available options
 				if (this.sort === true) {
-					// temp container for sorted tags
-					const sorted = [];
-
-					// add all sorted options first
-					for (const option of this.options) {
-						const index = tags.indexOf(option.value);
-
-						// if the option exists in the value array …
-						if (index !== -1) {
-							sorted.push(option);
-
-							// remove the sorted option from the tags array,
-							// so it won't be added twice
-							tags.splice(index, 1);
-						}
-					}
-
-					// add all remaining custom options
-					sorted.push(...tags);
-
-					tags = sorted;
+					// sort all tags by the available options
+					this.tags = this.sortByOptions(this.value);
+				} else {
+					// convert all values to tag objects and filter invalid tags
+					this.tags = this.value.map(this.tag).filter((tag) => tag);
 				}
-
-				// convert all values to tag objects and filter invalid tags
-				this.tags = tags.map(this.tag).filter((tag) => tag);
 			},
 			immediate: true
 		}
 	},
 	methods: {
-		edit(index, tag, event) {
-			if (this.disabled === false) {
-				/**
-				 * Tag was double-clicked
-				 * @property {Number} index
-				 * @property {Object} tag
-				 * @property {Event} event
-				 */
-				this.$emit("edit", index, tag, event);
+		add(tag) {
+			// clean up the input
+			tag = this.tag(tag);
+
+			// no new tags if this is full
+			if (this.isFull === true) {
+				return false;
 			}
+
+			// check if the tag is accepted
+			if (this.isAllowed(tag) === false) {
+				return false;
+			}
+
+			this.tags.push(tag);
+			this.save();
+		},
+		edit(index, tag, event) {
+			this.editing = {
+				index,
+				tag
+			};
+
+			return this.$refs.editor.open(event.target.closest(".k-tag"));
 		},
 		focus(index = "last") {
-			this.$refs.navigate.move(index);
+			this.$refs.navigation.move(index);
 		},
 		index(tag) {
 			return this.tags.findIndex((item) => item.value === tag.value);
 		},
-		input() {
-			/**
-			 * Tags list was updated
-			 * @property {Array} tags
-			 */
-			this.$emit(
-				"input",
-				this.tags.map((tag) => tag.value)
-			);
+		isAllowed(tag) {
+			if (typeof tag !== "object" || tag.value.length === 0) {
+				return false;
+			}
+
+			// if only options are allowed as value
+			if (this.accept === "options" && !this.option(tag)) {
+				return false;
+			}
+
+			if (this.isDuplicate(tag) === true) {
+				return false;
+			}
+
+			return true;
+		},
+		isDuplicate(tag) {
+			return this.value.includes(tag.value) === true;
 		},
 		navigate(position) {
 			this.focus(position);
 		},
 		remove(index) {
-			if (this.tags.length <= 1) {
+			this.tags.splice(index, 1);
+
+			if (this.tags.length === 0) {
 				this.navigate("last");
 			} else {
 				this.navigate("prev");
 			}
 
-			this.tags.splice(index, 1);
-			this.input();
+			this.save();
 		},
-		/**
-		 * Get corresponding option for a tag value
-		 * @param {String} tag
-		 * @returns {text: String, value: String}
-		 * @public
-		 */
+		replace(value) {
+			const { index } = this.editing;
+			const updated = this.tag(value);
+
+			if (this.isAllowed(updated) === false) {
+				return false;
+			}
+
+			this.$set(this.tags, index, updated);
+			this.save();
+			this.navigate(index);
+			this.editing = null;
+		},
+		open() {
+			if (this.$refs.selector) {
+				this.$refs.toggle.focus();
+				this.$refs.selector.open(this.$refs.toggle);
+			} else {
+				this.focus();
+			}
+		},
 		option(tag) {
 			return this.options.find((option) => option.value === tag.value);
 		},
 		select() {
 			this.focus();
 		},
+		save() {
+			this.$emit(
+				"input",
+				this.tags.map((tag) => tag.value)
+			);
+		},
+		sortByOptions(values) {
+			// make sure values are not reactive
+			// otherwise this could have nasty side-effects
+			values = this.$helper.object.clone(values);
+
+			// container for sorted tags
+			const tags = [];
+
+			// add all sorted options first
+			for (const option of this.options) {
+				const index = values.indexOf(option.value);
+
+				// if the option exists in the value array …
+				if (index !== -1) {
+					tags.push(option);
+
+					// remove the sorted option from the temporary values array
+					values.splice(index, 1);
+				}
+			}
+
+			// add all remaining custom options
+			for (const option of values) {
+				tags.push(this.tag(option));
+			}
+
+			return tags;
+		},
 		/**
-		 * Create a tag object from a string or object
-		 * @param {String, Object} tag
+		 * @param {String,Object} tag
 		 * @returns {text: String, value: String}
-		 * @public
 		 */
 		tag(tag) {
 			if (typeof tag !== "object") {
@@ -207,6 +323,11 @@ export default {
 
 			// try to find a matching option
 			const option = this.option(tag);
+
+			// if only options are allwed as value
+			if (this.accept === "options") {
+				return option;
+			}
 
 			// always prefer options as source
 			// as they can be trusted without escaping
@@ -221,6 +342,18 @@ export default {
 				text: this.$helper.string.escapeHTML(tag.text ?? tag.value),
 				value: tag.value
 			};
+		},
+
+		toggle(event) {
+			if (event.metaKey || event.altKey || event.ctrlKey) {
+				return false;
+			}
+
+			const char = String.fromCharCode(event.keyCode);
+
+			if (char.match(/(\w)/g)) {
+				this.$refs.selector.open();
+			}
 		}
 	}
 };
@@ -244,11 +377,16 @@ export default {
 .k-tags[data-layout="list"] .k-tag {
 	width: 100%;
 }
-
-.k-tags.k-draggable .k-tag-text {
-	cursor: grab;
+.k-tags-toggle.k-button {
+	--button-rounded: var(--rounded-sm);
+	--button-color-icon: var(--color-gray-600);
+	opacity: 0;
+	transition: opacity 0.3s;
 }
-.k-tags.k-draggable .k-tag-text:active {
-	cursor: grabbing;
+.k-tags:is(:hover, :focus-within) .k-tags-toggle {
+	opacity: 1;
+}
+.k-tags .k-tags-toggle:is(:focus, :hover) {
+	--button-color-icon: var(--color-text);
 }
 </style>
